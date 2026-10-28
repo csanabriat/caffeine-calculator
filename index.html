@@ -193,7 +193,6 @@ const $ = id => document.getElementById(id);
 let grams = 10;
 let drinks = [];
 try { drinks = JSON.parse(localStorage.getItem('drinks2') || 'null') || []; } catch(e){}
-if (!drinks.length) drinks = [{time:'09:00', grams:10, method:'aero', bean:'arabica'}];
 
 BEANS.forEach(b => $('bean').add(new Option(`${b.name} (${b.mgg} mg/g)`, b.id)));
 METHODS.forEach(m => $('method').add(new Option(m.name, m.id)));
