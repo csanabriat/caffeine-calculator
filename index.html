@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de vida media de la cafeína</title>
+<style>
+  :root{
+    --bg:#faf6f1; --card:#fff; --ink:#2b1d14; --muted:#7a6a5e; --line:#e8dfd5;
+    --accent:#b8652a; --accent-soft:#f6e6d8; --good:#2e7d4f; --warn:#c77d0a; --bad:#b3372f;
+    --grid:#eee5da;
+    --ok-bg:#e2f3e7; --ok-ink:#1f6b3d; --mid-bg:#fcf1c8; --mid-ink:#8a6200; --hi-bg:#fbe0dc; --hi-ink:#a8322b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#17110d; --card:#221a14; --ink:#f3e9df; --muted:#a8978a; --line:#392d24;
+      --accent:#e08a4c; --accent-soft:#3a2819; --grid:#31261e;
+      --ok-bg:#1c3326; --ok-ink:#8fd6a8; --mid-bg:#3b3216; --mid-ink:#ecd281; --hi-bg:#3d201d; --hi-ink:#f0a49c;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  main{max-width:820px;margin:0 auto;padding:32px 16px 64px}
+  h1{font-size:clamp(1.6rem,4vw,2.2rem);margin:0 0 6px}
+  h2{font-size:1.1rem;margin:0 0 14px}
+  .lead{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .grid .full{grid-column:1/-1}
+  label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:5px}
+  select,input[type=time],input[type=number]{width:100%;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px}
+  select:focus,input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .stepper{display:flex;align-items:center;gap:10px}
+  .stepper button{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:1.4rem;cursor:pointer}
+  .stepper button:hover{background:var(--accent-soft)}
+  .stepper .val{flex:1;text-align:center;font-size:1.5rem;font-weight:700}
+  .stepper .val small{font-size:.8rem;font-weight:500;color:var(--muted)}
+  .est{margin-top:10px;padding:10px 14px;background:var(--accent-soft);border-radius:10px;font-size:.95rem}
+  .est b{color:var(--accent);font-size:1.15rem}
+  .btn{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+  .btn:hover{filter:brightness(1.08)}
+  ul.drinks{list-style:none;margin:0;padding:0}
+  ul.drinks li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  ul.drinks li:last-child{border:0}
+  ul.drinks .t{font-weight:700;min-width:76px}
+  ul.drinks .n{flex:1}
+  ul.drinks .n small{display:block;color:var(--muted)}
+  ul.drinks .mg{font-weight:700}
+  ul.drinks button{border:0;background:none;color:var(--muted);font-size:1.2rem;cursor:pointer}
+  ul.drinks button:hover{color:var(--bad)}
+  .tp{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow:hidden}
+  .tp .disp{flex:1;padding:10px 12px;font-weight:600;outline-offset:-2px}
+  .tp .arr{display:flex;flex-direction:column;border-left:1px solid var(--line)}
+  .tp .arr button{flex:1;width:42px;border:0;background:none;color:var(--ink);cursor:pointer;font-size:.7rem;line-height:1}
+  .tp .arr button:first-child{border-bottom:1px solid var(--line)}
+  .tp .arr button:hover{background:var(--accent-soft)}
+  .tp.sm .disp{padding:8px 10px;font-size:.95rem;min-width:92px}
+  .tp.big{flex:0 0 auto}
+  .tp.big .disp{padding:8px 14px;min-width:150px;font-size:1.7rem;font-weight:800;line-height:1.2}
+  .tp.big .disp span{font-size:.95rem;font-weight:500;color:var(--muted)}
+  .stat.ok{background:var(--ok-bg);border-color:transparent;color:var(--ok-ink)}
+  .stat.mid{background:var(--mid-bg);border-color:transparent;color:var(--mid-ink)}
+  .stat.high{background:var(--hi-bg);border-color:transparent;color:var(--hi-ink)}
+  .stat.ok .k,.stat.mid .k,.stat.high .k{color:inherit;opacity:.85}
+  .bedcard{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px}
+  .bedcard label{margin:0;font-size:.95rem;color:var(--ink)}
+  .bedcard .tp{width:200px}
+  ul.drinks li.d{flex-wrap:wrap}
+  .hint{color:var(--muted);font-size:.85rem;margin:10px 0 0}
+  .results{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .stat{padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+  .stat .k{font-size:.8rem;color:var(--muted);font-weight:600}
+  .stat .v{font-size:2rem;font-weight:800;line-height:1.2}
+  .stat .s{font-size:.88rem}
+  #chart{width:100%;height:auto;display:block}
+  details{margin-top:6px}
+  summary{cursor:pointer;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:10px}
+  table{table-layout:fixed}
+  th:first-child,td:first-child{width:50%}
+  td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+  .legend{display:flex;gap:20px;font-size:.88rem;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:20px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  .legend i.dash{height:0;border-top:2px dashed var(--ink);border-radius:0}
+  p.note{color:var(--muted);font-size:.88rem}
+  @media(max-width:560px){.grid,.results{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Calculadora de vida media de la cafeína</h1>
+  <p class="lead">Agrega tu café por gramos de café molido y mira cuánta cafeína queda en tu cuerpo a la hora de dormir.</p>
+
+  <section class="card bedcard">
+    <label>Tu hora de dormir</label>
+    <div class="tp" id="bed"></div>
+  </section>
+
+  <section class="card">
+    <h2>Agrega tus bebidas</h2>
+    <div class="grid">
+      <div class="full">
+        <label>Bebida con cafeína: gramos de café molido por dosis</label>
+        <div class="stepper">
+          <button type="button" id="minus" aria-label="Menos gramos">&minus;</button>
+          <div class="val"><span id="gramsVal">10</span> <small>g de café</small></div>
+          <button type="button" id="plus" aria-label="Más gramos">+</button>
+        </div>
+      </div>
+      <div>
+        <label for="method">Método de preparación</label>
+        <select id="method"></select>
+      </div>
+      <div>
+        <label for="bean">Grano</label>
+        <select id="bean"></select>
+      </div>
+      <div>
+        <label>Hora en que lo tomas</label>
+        <div class="tp" id="time"></div>
+      </div>
+    </div>
+    <div class="est">Cafeína estimada en esta bebida: <b id="est">0</b> mg</div>
+    <button class="btn" id="add" type="button">Agregar bebida</button>
+  </section>
+
+  <section class="card">
+    <h2>Tus bebidas de hoy</h2>
+    <ul class="drinks" id="list"></ul>
+    <p class="hint" id="emptyHint">Quita o agrega bebidas para personalizar.</p>
+  </section>
+
+  <section class="results" style="margin-bottom:18px">
+    <div class="stat" id="bedStat"><div class="k" id="bedLabel">Cafeína al dormir</div><div class="v" id="bedMg">0 mg</div><div class="s" id="bedMsg"></div></div>
+    <div class="stat"><div class="k">Cafeína casi en cero</div><div class="v" id="zeroT">-</div><div class="s">Cuando la cafeína baja de 20 mg</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Nivel de cafeína durante el día</h2>
+    <svg id="chart" viewBox="0 0 760 340" role="img" aria-label="Gráfico del nivel de cafeína"></svg>
+    <div class="legend"><span><i style="background:#fb7c5f"></i>Nivel de cafeína</span><span><i class="dash"></i>Hora de dormir</span></div>
+  </section>
+
+  <section class="card">
+    <h2>Ajustes</h2>
+    <div class="grid">
+      <div>
+        <label>Vida media de la cafeína (horas)</label>
+        <div class="tp" id="hl"></div>
+      </div>
+    </div>
+    <p class="note">Modelo: cada dosis se cuenta como absorbida por completo en el momento en que la tomas y luego se elimina con cinética de primer orden (vida media por defecto 5 h; es más larga con embarazo o anticonceptivos orales y más corta en fumadores).</p>
+  </section>
+
+  <section class="card">
+    <h2>Lo que realmente muestra la investigación del sueño</h2>
+    <p><b>Apunta a 0 mg a la hora de dormir.</b> Investigadores del sueño como Matthew Walker recomiendan no tener nada de cafeína en el cuerpo al acostarse. Incluso 50 mg, que suele citarse como un umbral "seguro", es en realidad el nivel donde los estudios de EEG muestran que empieza una alteración medible del sueño.</p>
+    <p><b>La tolerancia no protege tu sueño.</b> Quienes toman mucho café pueden sentirse bien, pero los EEG muestran que su sueño profundo igual se reduce. No notas la pérdida de sueño porque la tolerancia disfraza los efectos subjetivos, pero el sueño reparador de tu cerebro se ve comprometido.</p>
+    <p><b>Deja la cafeína 10 o más horas antes de dormir.</b> Con una vida media de 5 horas, 122 mg a las 2 PM todavía dejan unos 35 mg a las 11 PM y unos 23 mg a las 2 AM. Los metabolizadores lentos (vida media de 8 a 10 horas) deberían parar incluso antes.</p>
+  </section>
+
+  <section class="card">
+    <h2>Cómo los gramos de café se vuelven miligramos de cafeína</h2>
+    <p><b>cafeína (mg) = gramos de café &times; cafeína por gramo de grano &times; eficiencia de extracción</b></p>
+    <details open>
+      <summary>Valores usados</summary>
+      <table>
+        <thead><tr><th>Grano</th><th>mg de cafeína / g (grano seco)</th></tr></thead>
+        <tbody id="beanTable"></tbody>
+      </table>
+      <table>
+        <thead><tr><th>Método</th><th>% de cafeína extraída</th></tr></thead>
+        <tbody id="methodTable"></tbody>
+      </table>
+    </details>
+    <p class="note">El arábica tiene cerca de 1.2% de cafeína en peso y el robusta cerca de 2.2%. El tostado casi no la cambia (solo pierde algo de masa). La cafeína se disuelve fácilmente, así que los métodos largos, calientes y con mucha agua extraen casi toda, mientras que los espressos cortos extraen menos. Ejemplo de referencia: 18 g de arábica en filtro dan unos 180 mg y en espresso unos 130 mg, en línea con mediciones publicadas (Bell et al. 1996, 50 a 143 mg por taza de 6 oz). Toma el resultado como una estimación, ya que una taza real varía cerca de &plusmn;25% según molienda, proporción y tiempo de preparación.</p>
+  </section>
+</main>
+
+<script>
+const BEANS = [
+  {id:'arabica', name:'Arábica', mgg:12},
+  {id:'robusta', name:'Robusta', mgg:22},
+  {id:'decaf',   name:'Descafeinado', mgg:0.4}
+];
+const METHODS = [
+  {id:'drip',    name:'Filtro / Pour-over', eff:.85},
+  {id:'french',  name:'Prensa francesa',     eff:.80},
+  {id:'aero',    name:'AeroPress',        eff:.78},
+  {id:'moka',    name:'Moka',         eff:.75},
+  {id:'cold',    name:'Cold brew',        eff:.70},
+  {id:'espresso',name:'Espresso',         eff:.60}
+];
+const $ = id => document.getElementById(id);
+let grams = 10;
+let drinks = [];
+try { drinks = JSON.parse(localStorage.getItem('drinks2') || 'null') || []; } catch(e){}
+if (!drinks.length) drinks = [{time:'09:00', grams:10, method:'aero', bean:'arabica'}];
+
+BEANS.forEach(b => $('bean').add(new Option(`${b.name} (${b.mgg} mg/g)`, b.id)));
+METHODS.forEach(m => $('method').add(new Option(m.name, m.id)));
+$('beanTable').innerHTML = BEANS.map(b=>`<tr><td>${b.name}</td><td>${b.mgg}</td></tr>`).join('');
+$('methodTable').innerHTML = METHODS.map(m=>`<tr><td>${m.name}</td><td>${Math.round(m.eff*100)}%</td></tr>`).join('');
+
+const mgFor = (g, method, bean) =>
+  g * BEANS.find(b=>b.id===bean).mgg * METHODS.find(m=>m.id===method).eff;
+const toH = s => { const [h,m] = s.split(':').map(Number); return h + m/60; };
+const fmt = h => {
+  h = ((h % 24) + 24) % 24;
+  let hh = Math.floor(h), mm = Math.round((h-hh)*60);
+  if (mm === 60) { hh++; mm = 0; }
+  hh %= 24;
+  const ap = hh >= 12 ? 'PM' : 'AM';
+  return `${hh%12 || 12}:${String(mm).padStart(2,'0')} ${ap}`;
+};
+const pad = n => String(n).padStart(2,'0');
+const hhmm = m => `${pad(Math.floor(m/60))}:${pad(m%60)}`;
+function makeTP(id, initial, onchange){
+  const el = $(id); let m = Math.round(toH(initial)*60);
+  el.innerHTML = '<div class="disp" tabindex="0" role="spinbutton"></div><div class="arr"><button type="button" aria-label="Más tarde">&#9650;</button><button type="button" aria-label="Más temprano">&#9660;</button></div>';
+  const disp = el.querySelector('.disp'), [up, down] = el.querySelectorAll('button');
+  const set = d => { m = (m + d + 1440) % 1440; disp.textContent = fmt(m/60); el.dataset.v = hhmm(m); onchange && onchange(); };
+  disp.textContent = fmt(m/60); el.dataset.v = hhmm(m);
+  up.onclick = () => set(30); down.onclick = () => set(-30);
+  disp.onkeydown = e => { if (e.key==='ArrowUp'){ e.preventDefault(); set(30); } else if (e.key==='ArrowDown'){ e.preventDefault(); set(-30); } };
+}
+function makeSpin(el, {text, up, down, onchange}){
+  el.innerHTML = '<div class="disp" tabindex="0" role="spinbutton"></div><div class="arr"><button type="button" aria-label="Subir">&#9650;</button><button type="button" aria-label="Bajar">&#9660;</button></div>';
+  const disp = el.querySelector('.disp'), [b1, b2] = el.querySelectorAll('button');
+  const draw = () => { disp.innerHTML = text(); };
+  const go = f => { f(); draw(); onchange && onchange(); };
+  b1.onclick = () => go(up); b2.onclick = () => go(down);
+  disp.onkeydown = e => { if (e.key==='ArrowUp'){ e.preventDefault(); go(up); } else if (e.key==='ArrowDown'){ e.preventDefault(); go(down); } };
+  draw(); return draw;
+}
+let halfLife = 5;
+const getTime = id => $(id).dataset.v;
+const save = () => { try { localStorage.setItem('drinks2', JSON.stringify(drinks)); } catch(e){} };
+
+function updateEst(){
+  $('gramsVal').textContent = grams;
+  $('est').textContent = Math.round(mgFor(grams, $('method').value, $('bean').value));
+}
+$('minus').onclick = () => { grams = Math.max(1, grams-1); updateEst(); };
+$('plus').onclick  = () => { grams = Math.min(60, grams+1); updateEst(); };
+$('method').onchange = $('bean').onchange = updateEst;
+
+$('add').onclick = () => {
+  drinks.push({time:getTime('time'), grams, method:$('method').value, bean:$('bean').value});
+  drinks.sort((a,b)=>toH(a.time)-toH(b.time));
+  save(); render();
+};
+
+// Caffeine in the body at time t (hours) from one dose: instant absorption, then exponential decay
+function level(t, d){
+  const dt = t - d.t0;
+  if (dt < 0) return 0;
+  return d.mg * Math.exp(-Math.LN2 / halfLife * dt);
+}
+
+function render(rebuild = true){
+  const thr = 20;
+  const ds = drinks.map(d => ({...d, t0: toH(d.time), mg: mgFor(d.grams, d.method, d.bean)}));
+
+  // list
+  if (rebuild){
+    $('list').innerHTML = ds.map((d,i)=>`<li class="d" data-i="${i}">
+      <div class="tp sm" data-k="time"></div>
+      <span class="n">${BEANS.find(b=>b.id===d.bean).name}<small>${METHODS.find(m=>m.id===d.method).name}</small></span>
+      <div class="tp big" data-k="grams"></div>
+      <button class="rm" aria-label="Quitar bebida">&times;</button></li>`).join('');
+    $('emptyHint').style.display = ds.length ? '' : 'none';
+    $('list').querySelectorAll('li.d').forEach(li => {
+      const i = +li.dataset.i, d = drinks[i];
+      li.querySelector('.rm').onclick = () => { drinks.splice(i,1); save(); render(); };
+      const mins = () => Math.round(toH(d.time)*60);
+      const setT = delta => { d.time = hhmm((mins()+delta+1440)%1440); save(); };
+      makeSpin(li.querySelector('[data-k=time]'), {text:()=>fmt(toH(d.time)), up:()=>setT(30), down:()=>setT(-30), onchange:()=>render(false)});
+      const setG = n => { d.grams = Math.max(1, Math.min(60, d.grams+n)); save(); };
+      makeSpin(li.querySelector('[data-k=grams]'), {
+        text:()=>`${d.grams} g <span>(${Math.round(mgFor(d.grams,d.method,d.bean))} mg)</span>`,
+        up:()=>setG(1), down:()=>setG(-1), onchange:()=>render(false)});
+    });
+    if (!ds.length) $('list').innerHTML = '<li><span class="n">Aún no hay bebidas. Agrega una arriba.</span></li>';
+  }
+
+  const total = t => ds.reduce((s,d)=>s+level(t,d),0);
+  let bed = toH(getTime('bed')); if (bed <= 6) bed += 24;
+  const first = ds.length ? Math.min(...ds.map(d=>d.t0)) : 6;
+  const x0 = Math.floor(first), x1 = Math.max(26, Math.ceil(bed)+1);
+
+  // results
+  const atBed = total(bed);
+  $('bedLabel').textContent = `Cafeína al dormir (${fmt(bed)})`;
+  $('bedMg').textContent = Math.round(atBed) + ' mg';
+  const shown = Math.round(atBed);
+  const lvl = shown > 100 ? ['high','Alta: alterará de forma significativa el sueño profundo']
+            : shown > 50  ? ['high','Disruptiva: reduce el sueño profundo entre 20% y 30%']
+            : shown > 20  ? ['mid','Aún afecta la arquitectura del sueño']
+            : shown > 0   ? ['ok','Mínima: casi ideal para dormir']
+            : ['ok','Óptima: sin impacto de la cafeína en el sueño'];
+  $('bedStat').className = 'stat ' + lvl[0];
+  $('bedMsg').textContent = lvl[1];
+
+  let peakT = x0, peak = 0;
+  for (let t=x0; t<=x1+24; t+=1/12){ const v=total(t); if(v>peak){peak=v;peakT=t;} }
+  let zero = null;
+  if (ds.length){
+    const lastT = Math.max(...ds.map(d=>d.t0));
+    for (let t=Math.max(lastT,peakT); t<lastT+72; t+=1/12){ if (total(t) < thr){ zero=t; break; } }
+  }
+  $('zeroT').textContent = zero==null ? '-' : fmt(zero) + (zero-x0 >= 24 - (x0%24) && zero>=24 ? ' (+1d)' : '');
+
+  // chart
+  const W=760,H=340,L=56,R=24,T=28,B=40;
+  const ymax = Math.max(10, Math.ceil(Math.max(peak, thr)/2)*2);
+  const X = t => L + (t-x0)/(x1-x0)*(W-L-R), Y = v => H-B - v/ymax*(H-T-B);
+  const LINE='#fb7c5f';
+  let s = `<defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${LINE}" stop-opacity=".25"/><stop offset="1" stop-color="${LINE}" stop-opacity=".02"/></linearGradient></defs>`;
+  [0, ymax/2, ymax].forEach(v => s += `<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${Math.round(v)}mg</text>`);
+  for (let t=x0; t<=x1; t+=2) s += `<text x="${X(t)}" y="${H-B+20}" text-anchor="middle" font-size="11" fill="var(--muted)">${fmt(t)}</text>`;
+  const ts = new Set();
+  for (let t=x0; t<=x1+1e-9; t+=1/12) ts.add(+t.toFixed(5));
+  ds.forEach(d => { if (d.t0>=x0 && d.t0<=x1){ ts.add(+d.t0.toFixed(5)); ts.add(+(d.t0-1e-4).toFixed(5)); } });
+  const pts = [...ts].sort((a,b)=>a-b).filter(t=>t>=x0&&t<=x1).map(t=>`${X(t).toFixed(1)},${Y(total(t)).toFixed(1)}`);
+  s += `<polygon points="${X(x0)},${Y(0)} ${pts.join(' ')} ${X(x1)},${Y(0)}" fill="url(#fill)"/>`;
+  s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${LINE}" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="round"/>`;
+  s += `<line x1="${X(bed)}" x2="${X(bed)}" y1="${T}" y2="${H-B}" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 4"/><text x="${X(bed)}" y="${T-8}" text-anchor="middle" font-size="12" fill="var(--ink)">Hora de dormir</text>`;
+  $('chart').innerHTML = s;
+}
+makeSpin($('hl'), {text:()=>halfLife+' h', up:()=>{halfLife=Math.min(12,halfLife+.5)}, down:()=>{halfLife=Math.max(2,halfLife-.5)}, onchange:()=>render()});
+makeTP('time', '09:00');
+makeTP('bed', '23:00', () => render());
+$('method').value = 'aero'; $('bean').value = 'arabica';
+updateEst(); render();
+</script>
+</body>
+</html>
